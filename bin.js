@@ -56,22 +56,22 @@ var argv = minimist(process.argv.slice(2), {
   ]
 })
 
-;(function main (argv) {
-  var dir = argv._[0]
+  ; (function main(argv) {
+    var dir = argv._[0]
 
-  if (argv.help) {
-    console.log(USAGE)
-  } else if (argv.version) {
-    console.log(require('./package.json').version)
-  } else if (!dir) {
-    console.log(NODIR)
-    process.exit(1)
-  } else {
-    create(path.join(process.cwd(), dir), argv)
-  }
-})(argv)
+    if (argv.help) {
+      console.log(USAGE)
+    } else if (argv.version) {
+      console.log(require('./package.json').version)
+    } else if (!dir) {
+      console.log(NODIR)
+      process.exit(1)
+    } else {
+      create(path.join(process.cwd(), dir), argv)
+    }
+  })(argv)
 
-function create (dir, argv) {
+function create(dir, argv) {
   var written = []
   var cmds = [
     function (done) {
@@ -135,6 +135,12 @@ function create (dir, argv) {
       lib.writeHtml(dir, done)
     },
     function (done) {
+      var filename = 'index_prod.html'
+      printFile(filename)
+      written.push(path.join(dir, filename))
+      lib.writeProdHtml(dir, done)
+    },
+    function (done) {
       var filename = 'main.js'
       printFile(filename)
       written.push(path.join(dir, filename))
@@ -194,20 +200,20 @@ function create (dir, argv) {
     }
   })
 
-  function print (val) {
+  function print(val) {
     if (!argv.quiet) console.log(val)
   }
 
-  function printFile (filename) {
+  function printFile(filename) {
     print('Creating file ' + clr(filename, 'cyan') + '…')
   }
 }
 
-function clr (text, color) {
+function clr(text, color) {
   return process.stdout.isTTY ? ansi.format(text, color) : text
 }
 
-function clrInstall (pkgs) {
+function clrInstall(pkgs) {
   return pkgs.reduce(function (str, pkg, i) {
     pkg = clr(pkg, 'cyan')
     if (i === pkgs.length - 1) {
@@ -220,7 +226,7 @@ function clrInstall (pkgs) {
   }, '')
 }
 
-function cleanFile (file, cb) {
+function cleanFile(file, cb) {
   console.log('Deleting generated file… ' + clr(path.basename(file), 'cyan'))
   rimraf(file, cb)
 }

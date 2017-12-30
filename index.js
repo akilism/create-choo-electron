@@ -32,12 +32,15 @@ exports.writePackage = function (dir, cb) {
       "dev": "bankai start index.js",
       "inspect": "bankai inspect index.js",
       "pack": "bankai build && build --dir",
-      "start": "NODE_ENV=development electron main.js",
+      "start": "NODE_ENV=development electron --ignore-certificate-errors --disable-http-cache main.js",
       "test": "standard && test-deps",
       "test-deps": "dependency-check . && dependency-check . --extra --no-dev -i tachyons"
     },
     "build": {
       "appId": "${name}",
+      "directories": {
+        "output": "electron_dist"
+      },
       "files": [
         "**/*"
       ],
@@ -59,6 +62,7 @@ exports.writeIgnore = function (dir, cb) {
     .nyc_output/
     coverage/
     dist/
+    electron_dist/
     tmp/
     npm-debug.log*
     .DS_Store
@@ -93,16 +97,16 @@ exports.writeReadme = function (dir, cb) {
   write(filename, file, cb)
 }
 
-exports.writeHtml = function (dir, cb) {
-  var filename = path.join(dir, 'index.html')
+function html(isProd, dir, cb) {
+  var filename = path.join(dir, isProd ? 'index_prod.html' : 'index.html')
   var file = dedent`
     <!DOCTYPE html>
     <html dir="ltr" lang="en">
       <head>
         <meta charset="utf-8">
         <meta content="width=device-width,initial-scale=1" name="viewport">
-        <link rel="preload" as="style" href="http://localhost:8080/bundle.css" onload="this.rel='stylesheet'">
-        <script defer src="http://localhost:8080/bundle.js"></script>
+        <link rel="preload" as="style" href="${isProd ? "dist/" : "http://localhost:8080/"}bundle.css" onload="this.rel='stylesheet'">
+        <script defer src="${isProd ? "dist/" : "http://localhost:8080/"}bundle.js"></script>
       </head>
       <body></body>
     </html>
@@ -110,6 +114,9 @@ exports.writeHtml = function (dir, cb) {
 
   write(filename, file, cb)
 }
+
+exports.writeHtml = html.bind(null, false);
+exports.writeProdHtml = html.bind(null, true);
 
 exports.writeIndex = function (dir, cb) {
   var filename = path.join(dir, 'index.js')
@@ -163,7 +170,10 @@ exports.writeMain = function (dir, cb) {
 
     app.on('ready', function () {
       win = new BrowserWindow(windowStyles)
-      win.loadURL('file://' + resolvePath('./index.html'))
+      var indexPath = process.env.NODE_ENV === 'development'
+      ? resolvePath('./index.html')
+      : resolvePath('./index_prod.html')
+      win.loadURL('file://' + indexPath)
 
       win.webContents.on('did-finish-load', function () {
         win.show()
@@ -316,15 +326,15 @@ exports.createGit = function (dir, message, cb) {
   })
 }
 
-function pushd (dir) {
+function pushd(dir) {
   var prev = process.cwd()
   process.chdir(dir)
-  return function popd () {
+  return function popd() {
     process.chdir(prev)
   }
 }
 
-function write (filename, file, cb) {
+function write(filename, file, cb) {
   fs.writeFile(filename, file, function (err) {
     if (err) return cb(new Error('Could not write file ' + filename))
     cb()
